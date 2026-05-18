@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MUSE — Model Portal</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <!-- ══ LOGIN PAGE ══ -->
+    <div id="login-page">
+      <div class="login-bg"></div>
+      <div class="login-bg-lines"></div>
+      <div class="login-card">
+        <div class="login-logo">MUSE</div>
+        <div class="login-tagline">Model Management Portal</div>
+        <div class="field-group">
+          <label>Email Address</label>
+          <input
+            type="email"
+            id="email-input"
+            placeholder="your@email.com"
+            autocomplete="off"
+          />
+        </div>
+        <div class="field-group">
+          <label>Password</label>
+          <input type="password" id="password-input" placeholder="••••••••••" />
+        </div>
+        <button class="login-btn" onclick="handleLogin()">Sign In</button>
+        <div class="login-error" id="login-error"></div>
+      </div>
+    </div>
+
+    <!-- ══ DASHBOARD PAGE ══ -->
+    <div id="dashboard-page">
+      <nav class="nav">
+        <div class="nav-logo">MUSE</div>
+        <div class="nav-right">
+          <div class="nav-user">Signed in as <span>Gary Nelson</span></div>
+          <button class="nav-logout" onclick="logout()">Sign Out</button>
+        </div>
+      </nav>
+
+      <div class="dash-main">
+        <div class="dash-greeting">Welcome back,</div>
+        <div class="dash-name">Gary <em>Nelson</em></div>
+
+        <div class="balance-card">
+          <div class="balance-label">Available Balance</div>
+          <div class="balance-amount" id="balance-display">
+            $<span id="balance-int">420,670</span
+            ><span style="font-size: 2rem; color: var(--gold)"
+              >.<span id="balance-dec">00</span></span
+            >
+          </div>
+          <div class="balance-live">
+            <div class="live-dot"></div>
+            <div class="live-text">$30 every 4hrs</div>
+          </div>
+          <div
+            style="
+              display: flex;
+              gap: 12px;
+              margin-top: 6px;
+              align-items: center;
+            "
+          >
+            <button class="withdraw-btn" onclick="openWithdraw()">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="17 11 12 6 7 11" />
+                <line x1="12" y1="6" x2="12" y2="18" />
+                <line x1="5" y1="21" x2="19" y2="21" />
+              </svg>
+              <span>Withdraw Funds</span>
+            </button>
+
+            <!-- History button -->
+            <button
+              class="withdraw-btn"
+              id="history-btn"
+              onclick="openHistory()"
+              style="background: none; border-color: rgba(201, 168, 76, 0.14)"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M21 12v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6"
+                />
+                <path d="M7 12h10" />
+              </svg>
+              <span>History</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Earnings Rate</div>
+            <div class="stat-value">
+              $30<span style="font-size: 0.9rem; color: var(--muted)"
+                >/4hrs</span
+              >
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Model Status</div>
+            <div
+              class="stat-value"
+              style="color: #5dde6a; font-size: 1.2rem; letter-spacing: 0.08em"
+            >
+              ● Active
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Member Since</div>
+            <div class="stat-value" style="font-size: 1.2rem">Jan 2025</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Account Tier</div>
+            <div
+              class="stat-value"
+              style="
+                color: var(--gold);
+                font-size: 1.2rem;
+                letter-spacing: 0.05em;
+              "
+            >
+              Elite
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-logo">MUSE</div>
+      <div class="footer-text">
+        © 2026 Muse Model Management — All Rights Reserved
+      </div>
+    </footer>
+
+    <!-- ══ WITHDRAW MODAL ══ -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal">
+        <div class="modal-title">Withdraw Funds</div>
+        <div class="modal-sub">
+          Enter the amount you wish to withdraw. Contact details will be
+          provided after confirmation.
+        </div>
+        <div class="field-group">
+          <label>Amount (USD)</label>
+          <input
+            type="number"
+            id="withdraw-amount"
+            placeholder="0.00"
+            min="1"
+          />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeWithdraw()">Cancel</button>
+          <button
+            class="btn-confirm"
+            id="confirm-btn"
+            onclick="confirmWithdraw()"
+          >
+            Confirm Withdrawal
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY MODAL -->
+    <div class="modal-overlay" id="history-overlay" aria-hidden="true">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="history-title"
+      >
+        <div class="modal-title" id="history-title">Transaction History</div>
+        <div class="modal-sub">
+          Showing recent activity for the last 60 days
+        </div>
+        <div class="field-group">
+          <div id="history-list" class="history-list">Loading history…</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeHistory()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ INFO MODAL (REWRITTEN POPUP CONTENT) ══ -->
+    <div class="modal-overlay" id="info-overlay" aria-hidden="true">
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="info-title"
+      >
+        <div class="modal-title" id="info-title">Withdrawal Requested</div>
+        <div class="field-group" style="margin-top: 16px">
+          <p
+            id="info-text"
+            style="
+              font-size: 1rem;
+              color: var(--text);
+              line-height: 1.6;
+              font-weight: 300;
+            "
+          >
+            <!-- content dynamically loaded cleanly inside index.js -->
+          </p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeInfo()">Close</button>
+          <a
+            id="info-action-mail"
+            class="btn-confirm"
+            href="#"
+            onclick="closeInfo()"
+            style="text-align: center; display: inline-block; line-height: 1.2"
+          >
+            Open Gmail
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TOAST ══ -->
+    <div class="toast" id="toast">
+      ✓ Withdrawal request submitted successfully
+    </div>
+
+    <script src="index.js"></script>
+  </body>
+</html>
