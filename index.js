@@ -7,7 +7,7 @@ const VALID_PASS = "doris4343";
 // ─────────────────────────────
 // STATE
 // ─────────────────────────────
-let balance = parseFloat(localStorage.getItem("balance")) || 421210.09;
+let balance = parseFloat(localStorage.getItem("balance")) || 421210;
 let ledger = JSON.parse(localStorage.getItem("ledger")) || [];
 let ticker = null;
 
@@ -30,6 +30,9 @@ function setLoggedIn(state) {
 // LEDGER
 // ─────────────────────────────
 function addTransaction(type, amount, desc) {
+    // Disable debit entries entirely — only credits are recorded in the ledger
+    if (type === "debit") return;
+
     ledger.push({
         id: crypto.randomUUID(),
         ts: Date.now(),
@@ -44,9 +47,43 @@ function getHistory() {
     return [...ledger].sort((a, b) => b.ts - a.ts);
 }
 
+function seedDemoHistory() {
+    // Only seed if ledger is empty (first run)
+    if (ledger.length) return;
+
+    const now = Date.now();
+    const sixMonthsMs = 182 * 24 * 60 * 60 * 1000; // ~6 months
+    const start = now - sixMonthsMs;
+
+    const periods = Math.floor((now - start) / EARN_INTERVAL_MS);
+    let totalCredits = 0;
+
+    for (let i = 0; i <= periods; i++) {
+        const ts = start + i * EARN_INTERVAL_MS;
+        // Add a credit for each earning cycle
+        ledger.push({
+            id: crypto.randomUUID(),
+            ts,
+            type: "credit",
+            amount: EARN_AMOUNT,
+            desc: "Auto earnings"
+        });
+        totalCredits += EARN_AMOUNT;
+    }
+
+    // Do not modify the visible/current balance here —
+    // keep current balance at the default (421,210). Ledger shows demo credits only.
+
+    // Mark lastUpdate as now so ticker doesn't re-add these past earnings
+    localStorage.setItem("lastUpdate", now.toString());
+
+    saveState();
+}
+
 function renderHistory() {
     const list = document.getElementById("history-list");
-    const data = getHistory();
+    // Only show credit transactions in the history view
+    const data = getHistory().filter(tx => tx.type === "credit");
 
     if (!data.length) {
         list.innerHTML = "<div style='color:var(--muted)'>No activity found.</div>";
@@ -64,7 +101,7 @@ function renderHistory() {
                     <div style="font-size:0.85rem;color:var(--muted)">${date}</div>
                 </div>
                 <div class="h-amt">
-                    ${sign}$${tx.amount.toLocaleString("en-US",{minimumFractionDigits:2})}
+                    ${sign}$${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </div>
             </div>
         `;
@@ -118,6 +155,9 @@ function logout() {
 window.addEventListener("load", () => {
     const loggedIn = localStorage.getItem("isLoggedIn") === "true";
 
+    // Seed demo 6 month history on first run (only if ledger empty)
+    seedDemoHistory();
+
     if (loggedIn) {
         document.getElementById("login-page").style.display = "none";
         document.getElementById("dashboard-page").style.display = "block";
@@ -154,6 +194,9 @@ function startTicker() {
 
         localStorage.setItem("lastUpdate", lastUpdate + periods * EARN_INTERVAL_MS);
         saveState();
+
+        // Ensure history UI reflects these added earnings
+        renderHistory();
     }
 
     updateBalanceDisplay();
@@ -171,6 +214,9 @@ function startTicker() {
 
         localStorage.setItem("lastUpdate", Date.now());
         updateBalanceDisplay(true);
+
+        // Update history UI as money is added over time
+        renderHistory();
     }, EARN_INTERVAL_MS);
 }
 
@@ -210,7 +256,8 @@ function confirmWithdraw() {
     setTimeout(() => {
         balance -= amount;
 
-        addTransaction("debit", amount, "Withdrawal");
+        // Debit entries are disabled — do not add a ledger transaction for withdrawals
+        // addTransaction("debit", amount, "Withdrawal");
 
         saveState();
         updateBalanceDisplay();
