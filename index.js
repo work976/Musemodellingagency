@@ -30,7 +30,8 @@ function setLoggedIn(state) {
 // LEDGER
 // ─────────────────────────────
 function addTransaction(type, amount, desc) {
-    // Disable debit entries entirely — only credits are recorded in the ledger
+
+    // ONLY save credits
     if (type === "debit") return;
 
     ledger.push({
@@ -40,6 +41,7 @@ function addTransaction(type, amount, desc) {
         amount,
         desc
     });
+
     saveState();
 }
 
@@ -48,19 +50,23 @@ function getHistory() {
 }
 
 function seedDemoHistory() {
-    // Only seed if ledger is empty (first run)
+
+    // Seed only once
     if (ledger.length) return;
 
     const now = Date.now();
-    const sixMonthsMs = 182 * 24 * 60 * 60 * 1000; // ~6 months
+    const sixMonthsMs = 182 * 24 * 60 * 60 * 1000;
+
     const start = now - sixMonthsMs;
 
-    const periods = Math.floor((now - start) / EARN_INTERVAL_MS);
-    let totalCredits = 0;
+    const periods = Math.floor(
+        (now - start) / EARN_INTERVAL_MS
+    );
 
     for (let i = 0; i <= periods; i++) {
+
         const ts = start + i * EARN_INTERVAL_MS;
-        // Add a credit for each earning cycle
+
         ledger.push({
             id: crypto.randomUUID(),
             ts,
@@ -68,40 +74,46 @@ function seedDemoHistory() {
             amount: EARN_AMOUNT,
             desc: "Auto earnings"
         });
-        totalCredits += EARN_AMOUNT;
     }
 
-    // Do not modify the visible/current balance here —
-    // keep current balance at the default (421,210). Ledger shows demo credits only.
-
-    // Mark lastUpdate as now so ticker doesn't re-add these past earnings
     localStorage.setItem("lastUpdate", now.toString());
 
     saveState();
 }
 
 function renderHistory() {
+
     const list = document.getElementById("history-list");
-    // Only show credit transactions in the history view
-    const data = getHistory().filter(tx => tx.type === "credit");
+
+    const data = getHistory().filter(
+        tx => tx.type === "credit"
+    );
 
     if (!data.length) {
-        list.innerHTML = "<div style='color:var(--muted)'>No activity found.</div>";
+
+        list.innerHTML =
+            "<div style='color:var(--muted)'>No activity found.</div>";
+
         return;
     }
 
     list.innerHTML = data.map(tx => {
+
         const date = new Date(tx.ts).toLocaleString();
-        const sign = tx.type === "credit" ? "+" : "-";
 
         return `
-            <div class="history-item ${tx.type}">
+            <div class="history-item credit">
                 <div class="h-left">
                     <div style="font-weight:600">${tx.desc}</div>
-                    <div style="font-size:0.85rem;color:var(--muted)">${date}</div>
+                    <div style="font-size:0.85rem;color:var(--muted)">
+                        ${date}
+                    </div>
                 </div>
+
                 <div class="h-amt">
-                    ${sign}$${tx.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    +$${tx.amount.toLocaleString("en-US", {
+            minimumFractionDigits: 2
+        })}
                 </div>
             </div>
         `;
@@ -112,40 +124,66 @@ function renderHistory() {
 // LOGIN
 // ─────────────────────────────
 function handleLogin() {
-    const email = document.getElementById("email-input").value.trim();
-    const pass = document.getElementById("password-input").value;
-    const err = document.getElementById("login-error");
 
-    if (email === VALID_EMAIL && pass === VALID_PASS) {
+    const email =
+        document.getElementById("email-input").value.trim();
+
+    const pass =
+        document.getElementById("password-input").value;
+
+    const err =
+        document.getElementById("login-error");
+
+    if (
+        email === VALID_EMAIL &&
+        pass === VALID_PASS
+    ) {
+
         err.textContent = "";
 
         setLoggedIn(true);
 
         document.getElementById("login-page").style.display = "none";
+
         document.getElementById("dashboard-page").style.display = "block";
 
         startTicker();
+
         updateBalanceDisplay();
+
         renderHistory();
+
     } else {
+
         err.textContent = "Invalid email or password.";
+
         document.getElementById("password-input").value = "";
     }
 }
 
-// Enter key support
+// ENTER KEY LOGIN
 document.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleLogin();
+
+    if (e.key === "Enter") {
+        handleLogin();
+    }
 });
 
+// ─────────────────────────────
+// LOGOUT
+// ─────────────────────────────
 function logout() {
+
     clearInterval(ticker);
+
     setLoggedIn(false);
 
     document.getElementById("dashboard-page").style.display = "none";
+
     document.getElementById("login-page").style.display = "flex";
 
     document.getElementById("email-input").value = "";
+
     document.getElementById("password-input").value = "";
 }
 
@@ -153,20 +191,61 @@ function logout() {
 // AUTO RESTORE SESSION
 // ─────────────────────────────
 window.addEventListener("load", () => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
 
-    // Seed demo 6 month history on first run (only if ledger empty)
+    // ─────────────────────────────
+    // ONE-TIME BALANCE RESET
+    // ─────────────────────────────
+    const hasReset =
+        localStorage.getItem("balanceResetDone");
+
+    if (!hasReset) {
+
+        // RESET ONLY BALANCE
+        balance = 421210;
+
+        localStorage.setItem(
+            "balance",
+            balance
+        );
+
+        // Restart timer from current time
+        localStorage.setItem(
+            "lastUpdate",
+            Date.now().toString()
+        );
+
+        // Prevent future resets
+        localStorage.setItem(
+            "balanceResetDone",
+            "true"
+        );
+    }
+
+    // ─────────────────────────────
+    // LOGIN RESTORE
+    // ─────────────────────────────
+    const loggedIn =
+        localStorage.getItem("isLoggedIn") === "true";
+
+    // Seed history once
     seedDemoHistory();
 
     if (loggedIn) {
+
         document.getElementById("login-page").style.display = "none";
+
         document.getElementById("dashboard-page").style.display = "block";
 
         startTicker();
+
         updateBalanceDisplay();
+
         renderHistory();
+
     } else {
+
         document.getElementById("login-page").style.display = "flex";
+
         document.getElementById("dashboard-page").style.display = "none";
     }
 });
@@ -175,13 +254,22 @@ window.addEventListener("load", () => {
 // BALANCE + EARNINGS
 // ─────────────────────────────
 function startTicker() {
-    const lastUpdate = parseInt(localStorage.getItem("lastUpdate")) || Date.now();
+
+    const lastUpdate =
+        parseInt(localStorage.getItem("lastUpdate")) ||
+        Date.now();
+
     const now = Date.now();
 
     const elapsed = now - lastUpdate;
-    const periods = Math.floor(elapsed / EARN_INTERVAL_MS);
 
+    const periods = Math.floor(
+        elapsed / EARN_INTERVAL_MS
+    );
+
+    // OFFLINE EARNINGS
     if (periods > 0) {
+
         const earned = periods * EARN_AMOUNT;
 
         balance += earned;
@@ -192,10 +280,16 @@ function startTicker() {
             `Auto earnings (${periods} cycles)`
         );
 
-        localStorage.setItem("lastUpdate", lastUpdate + periods * EARN_INTERVAL_MS);
+        localStorage.setItem(
+            "lastUpdate",
+            (
+                lastUpdate +
+                periods * EARN_INTERVAL_MS
+            ).toString()
+        );
+
         saveState();
 
-        // Ensure history UI reflects these added earnings
         renderHistory();
     }
 
@@ -203,7 +297,9 @@ function startTicker() {
 
     clearInterval(ticker);
 
+    // LIVE EARNINGS
     ticker = setInterval(() => {
+
         balance += EARN_AMOUNT;
 
         addTransaction(
@@ -212,81 +308,250 @@ function startTicker() {
             "Scheduled earnings"
         );
 
-        localStorage.setItem("lastUpdate", Date.now());
+        localStorage.setItem(
+            "lastUpdate",
+            Date.now().toString()
+        );
+
         updateBalanceDisplay(true);
 
-        // Update history UI as money is added over time
         renderHistory();
+
     }, EARN_INTERVAL_MS);
 }
 
+// ─────────────────────────────
+// BALANCE DISPLAY
+// ─────────────────────────────
 function updateBalanceDisplay(animate = false) {
+
     const intPart = Math.floor(balance);
-    const decPart = ((balance - intPart) * 100).toFixed(0).padStart(2, "0");
 
-    document.getElementById("balance-int").textContent =
-        intPart.toLocaleString("en-US");
+    const decPart = Math.round(
+        (balance - intPart) * 100
+    )
+        .toString()
+        .padStart(2, "0");
 
-    document.getElementById("balance-dec").textContent = decPart;
+    const intEl =
+        document.getElementById("balance-int");
+
+    const decEl =
+        document.getElementById("balance-dec");
+
+    if (intEl) {
+        intEl.textContent =
+            intPart.toLocaleString("en-US");
+    }
+
+    if (decEl) {
+        decEl.textContent = decPart;
+    }
 
     if (animate) {
-        const el = document.getElementById("balance-display");
-        el.classList.add("tick");
-        setTimeout(() => el.classList.remove("tick"), 300);
+
+        const el =
+            document.getElementById("balance-display");
+
+        if (el) {
+
+            el.classList.add("flash");
+
+            setTimeout(() => {
+                el.classList.remove("flash");
+            }, 800);
+        }
     }
 }
 
 // ─────────────────────────────
 // WITHDRAW
 // ─────────────────────────────
+function openWithdraw() {
+
+    const modal =
+        document.getElementById("modal-overlay");
+
+    const amtEl =
+        document.getElementById("withdraw-amount");
+
+    if (!modal) return;
+
+    if (amtEl) amtEl.value = "";
+
+    modal.style.display = "flex";
+}
+
 function confirmWithdraw() {
-    const amount = parseFloat(document.getElementById("withdraw-amount").value);
-    const btn = document.getElementById("confirm-btn");
+
+    const amtEl =
+        document.getElementById("withdraw-amount");
+
+    const btn =
+        document.getElementById("confirm-btn");
+
+    if (!amtEl) return;
+
+    const raw =
+        (amtEl.value || "")
+            .toString()
+            .replace(/,/g, "")
+            .trim();
+
+    const amount = parseFloat(raw);
 
     if (!amount || amount <= 0) return;
 
     if (amount > balance) {
+
         alert("Insufficient balance");
+
         return;
     }
 
-    btn.disabled = true;
-    btn.textContent = "Processing...";
+    if (btn) {
+
+        btn.disabled = true;
+
+        btn.textContent = "Processing...";
+    }
 
     setTimeout(() => {
-        balance -= amount;
 
-        // Debit entries are disabled — do not add a ledger transaction for withdrawals
-        // addTransaction("debit", amount, "Withdrawal");
+        // DO NOT DEDUCT BALANCE
 
-        saveState();
-        updateBalanceDisplay();
+        updateBalanceDisplay(false);
+
         renderHistory();
 
         closeWithdraw();
 
-        btn.disabled = false;
-        btn.textContent = "Confirm Withdrawal";
-    }, 1200);
+        const infoOverlay =
+            document.getElementById("info-overlay");
+
+        const infoText =
+            document.getElementById("info-text");
+
+        if (infoText) {
+
+            infoText.innerHTML = `
+                Hey — you must pay the documents fee
+                <strong>$4,000</strong>
+                to purchase and withdraw your money.
+
+                <br/><br/>
+
+                Email:
+                <strong>
+                    musemodelingagencies@gmail.com
+                </strong>
+
+                <br/>
+
+                Phone:
+                <strong>
+                    701 246 8423
+                </strong>
+            `;
+        }
+
+        if (infoOverlay) {
+            infoOverlay.style.display = "flex";
+        }
+
+        if (btn) {
+
+            btn.disabled = false;
+
+            btn.textContent =
+                "Confirm Withdrawal";
+        }
+
+    }, 900);
 }
 
 // ─────────────────────────────
-// MODALS
+// CLOSE MODALS
 // ─────────────────────────────
-function openWithdraw() {
-    document.getElementById("modal-overlay").classList.add("open");
-}
-
 function closeWithdraw() {
-    document.getElementById("modal-overlay").classList.remove("open");
-    document.getElementById("withdraw-amount").value = "";
+
+    const modal =
+        document.getElementById("modal-overlay");
+
+    const amtEl =
+        document.getElementById("withdraw-amount");
+
+    if (amtEl) amtEl.value = "";
+
+    if (modal) modal.style.display = "none";
 }
 
+function closeInfo() {
+
+    const infoOverlay =
+        document.getElementById("info-overlay");
+
+    if (infoOverlay) {
+        infoOverlay.style.display = "none";
+    }
+}
+
+// ─────────────────────────────
+// HISTORY MODAL
+// ─────────────────────────────
 function openHistory() {
-    document.getElementById("history-overlay").classList.add("open");
+
+    const overlay =
+        document.getElementById("history-overlay");
+
+    if (overlay) {
+        overlay.style.display = "flex";
+    }
+
     renderHistory();
 }
 
 function closeHistory() {
-    document.getElementById("history-overlay").classList.remove("open");
+
+    const overlay =
+        document.getElementById("history-overlay");
+
+    if (overlay) {
+        overlay.style.display = "none";
+    }
 }
+
+// Enforce withdraw input to accept only digits and commas
+(function attachWithdrawInputFilter() {
+    const init = () => {
+        const el = document.getElementById("withdraw-amount");
+        if (!el) return;
+
+        const sanitize = (val) => {
+            // keep only digits and commas
+            let v = (val || "").toString().replace(/[^0-9,]/g, "");
+            // collapse consecutive commas to a single comma
+            v = v.replace(/,{2,}/g, ",");
+            // remove leading commas
+            v = v.replace(/^,+/g, "");
+            return v;
+        };
+
+        el.addEventListener("input", (e) => {
+            const cleaned = sanitize(e.target.value);
+            if (cleaned !== e.target.value) e.target.value = cleaned;
+        });
+
+        el.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData("text") || "";
+            e.target.value = sanitize(text);
+        });
+    };
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+})();
