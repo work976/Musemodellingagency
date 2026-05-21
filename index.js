@@ -7,7 +7,7 @@ const VALID_PASS = "password123";
 const EARN_AMOUNT = 30;
 const EARN_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
-let balance = parseFloat(localStorage.getItem("balance")) || 420670.09;
+let balance = parseFloat(localStorage.getItem("balance")) || 421270.09;
 let ledger = JSON.parse(localStorage.getItem("ledger")) || [];
 let ticker = null;
 
